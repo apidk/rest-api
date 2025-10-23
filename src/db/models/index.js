@@ -1,13 +1,11 @@
 const { Sequelize } = require('sequelize');
-const path = require('path');
+const dbConfig = require('../../config/database');
 
 const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: path.join(__dirname, '../../db/rest-api.db'),
-  logging: false,
+  ...dbConfig,
   define: {
-    freezeTableName: true
-  }
+    freezeTableName: true,
+  },
 });
 
 const Amenity = require('./Amenity')(sequelize);
@@ -17,10 +15,10 @@ const User = require('./User')(sequelize);
 const models = {
   Amenity,
   Reservation,
-  User
+  User,
 };
 
-Object.keys(models).forEach(modelName => {
+Object.keys(models).forEach((modelName) => {
   if (models[modelName].associate) {
     models[modelName].associate(models);
   }
@@ -29,5 +27,5 @@ Object.keys(models).forEach(modelName => {
 module.exports = {
   sequelize,
   Sequelize,
-  ...models
+  ...models,
 };
