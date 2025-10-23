@@ -1,6 +1,11 @@
 const express = require('express');
+const multer = require('multer');
+const { parse } = require('csv-parse');
+const { Readable } = require('stream');
 const router = express.Router();
 const reservationsService = require('../service/ReservationsService');
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.get('/reservations/amenities/:amenityId', async (req, res) => {
   try {
@@ -42,12 +47,34 @@ router.get('/reservations/users/:userId', async (req, res) => {
   }
 });
 
-router.post(
-  '/csv/parse',
-  /* authenticateToken, */ (req, res) => {
-    res.status(200).json({ message: 'In progress' });
+router.post('/csv/parse', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
   }
-);
+
+  const records = [];
+  const stream = Readable.from(req.file.buffer);
+
+  stream
+    .pipe(
+      parse({
+        columns: true,
+        delimiter: ';',
+        skip_empty_lines: true,
+        trim: true,
+      })
+    )
+    .on('data', (record) => {
+      records.push(record);
+    })
+    .on('end', () => {
+      res.status(200).json(records);
+    })
+    .on('error', (error) => {
+      console.error('Error parsing CSV:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    });
+});
 
 router.post('/auth/register', (req, res) => {
   res.status(200).json({ message: 'In progress' });
