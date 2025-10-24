@@ -12,7 +12,7 @@ class ReservationsService {
   async getReservationsByAmenityAndDate(amenityId, dayTimestamp) {
     const reservations = await Reservation.findAll({
       where: {
-        amenityId: amenityId,
+        amenityId,
         date: dayTimestamp * 1000,
       },
       include: [
@@ -46,10 +46,9 @@ class ReservationsService {
    * @returns {Promise<Object<string, Array<{reservationId: number, amenityId: number, startTime: string, duration: number}>>>}
    */
   async getReservationsByUser(userId) {
-    // Note:
     const reservations = await Reservation.findAll({
       where: {
-        userId: userId,
+        userId,
       },
       order: [
         ['date', 'ASC'],

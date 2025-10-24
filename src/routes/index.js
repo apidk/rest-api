@@ -91,6 +91,7 @@ router.post('/auth/register', async (req, res) => {
     const user = await authService.register(username, password);
     res.status(201).json(user);
   } catch (error) {
+    // In a real project we want to use the custom exception classes which then can be mapped to proper response code
     if (error.message === 'Username already exists') {
       return res.status(409).json({ error: error.message });
     }
@@ -112,6 +113,7 @@ router.post('/auth/login', async (req, res) => {
     const result = await authService.login(username, password);
     res.status(200).json(result);
   } catch (error) {
+    // In a real project we want to use the custom exception classes which then can be mapped to proper response code
     if (error.message === 'Invalid credentials') {
       return res.status(401).json({ error: error.message });
     }
