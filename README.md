@@ -22,7 +22,7 @@
 # Install dependencies
 npm install
 
-# Run database migration and seed data
+# Run database migration and seed data (in case if you don't want to use prepopulated DB file)
 npm run migrate
 npm run seed
 ```
