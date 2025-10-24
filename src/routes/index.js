@@ -4,6 +4,8 @@ const { parse } = require('csv-parse');
 const { Readable } = require('stream');
 const router = express.Router();
 const reservationsService = require('../service/ReservationsService');
+const authService = require('../service/AuthService');
+const { authenticateToken } = require('../middleware/auth');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -47,7 +49,7 @@ router.get('/reservations/users/:userId', async (req, res) => {
   }
 });
 
-router.post('/csv/parse', upload.single('file'), (req, res) => {
+router.post('/csv/parse', authenticateToken, upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -76,12 +78,46 @@ router.post('/csv/parse', upload.single('file'), (req, res) => {
     });
 });
 
-router.post('/auth/register', (req, res) => {
-  res.status(200).json({ message: 'In progress' });
+router.post('/auth/register', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res
+        .status(400)
+        .json({ error: 'Username and password are required' });
+    }
+
+    const user = await authService.register(username, password);
+    res.status(201).json(user);
+  } catch (error) {
+    if (error.message === 'Username already exists') {
+      return res.status(409).json({ error: error.message });
+    }
+    console.error('Error during registration:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-router.post('/auth/login', (req, res) => {
-  res.status(200).json({ message: 'In progress' });
+router.post('/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res
+        .status(400)
+        .json({ error: 'Username and password are required' });
+    }
+
+    const result = await authService.login(username, password);
+    res.status(200).json(result);
+  } catch (error) {
+    if (error.message === 'Invalid credentials') {
+      return res.status(401).json({ error: error.message });
+    }
+    console.error('Error during login:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 module.exports = router;

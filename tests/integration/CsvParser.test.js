@@ -1,5 +1,6 @@
 const request = require('supertest');
 const express = require('express');
+const { sequelize } = require('../../src/db/models');
 const apiRoutes = require('../../src/routes');
 
 const app = express();
@@ -8,10 +9,33 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api', apiRoutes);
 
 describe('CSV Parser API', () => {
+  let authToken;
+
+  beforeAll(async () => {
+    await sequelize.sync({ force: true });
+
+    await request(app).post('/api/auth/register').send({
+      username: 'csvtestuser',
+      password: 'password123',
+    });
+
+    const loginResponse = await request(app).post('/api/auth/login').send({
+      username: 'csvtestuser',
+      password: 'password123',
+    });
+
+    authToken = loginResponse.body.token;
+  });
+
+  afterAll(async () => {
+    await sequelize.close();
+  });
+
   describe('POST /api/csv/parse', () => {
     it('should parse CSV file and return JSON', async () => {
       const response = await request(app)
         .post('/api/csv/parse')
+        .set('Authorization', `Bearer ${authToken}`)
         .attach('file', 'tests/fixtures/test-data.csv');
 
       expect(response.status).toBe(200);
@@ -37,6 +61,7 @@ describe('CSV Parser API', () => {
     it('should handle CSV with only headers', async () => {
       const response = await request(app)
         .post('/api/csv/parse')
+        .set('Authorization', `Bearer ${authToken}`)
         .attach('file', 'tests/fixtures/empty.csv');
 
       expect(response.status).toBe(200);
@@ -44,8 +69,19 @@ describe('CSV Parser API', () => {
       expect(response.body).toHaveLength(0);
     });
 
-    it('should return 400 when no file is uploaded', async () => {
-      const response = await request(app).post('/api/csv/parse');
+    it('should return 401 when no token is provided', async () => {
+      const response = await request(app)
+        .post('/api/csv/parse')
+        .attach('file', 'tests/fixtures/test-data.csv');
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty('error');
+    });
+
+    it('should return 400 when no file is uploaded but token is valid', async () => {
+      const response = await request(app)
+        .post('/api/csv/parse')
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
